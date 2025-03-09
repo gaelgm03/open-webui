@@ -135,14 +135,10 @@
 						{/each}
 					</div>
 				</div>
-
-				<div class=" text-3xl @sm:text-4xl line-clamp-1" in:fade={{ duration: 100 }}>
-					{#if models[selectedModelIdx]?.name}
-						{models[selectedModelIdx]?.name}
-					{:else}
-						{$i18n.t('Hello, {{name}}', { name: $user.name })}
-					{/if}
+				<div>
+					Chatbot Humanidades
 				</div>
+
 			</div>
 
 			<div class="flex mt-1 mb-2">
