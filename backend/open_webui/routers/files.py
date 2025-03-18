@@ -26,7 +26,16 @@ log.setLevel(SRC_LOG_LEVELS["MODELS"])
 
 router = APIRouter()
 
-DEFAULT_FILE_PATH = "./open-webui/backend/data/uploads/Adaptation of PLFV Anthology.docx"
+
+
+DEFAULT_FILE_PATH = os.path.abspath("./open-webui/backend/data/uploads/Adaptation of PLFV Anthology.docx")
+print(f"📂 Ruta absoluta del archivo: {DEFAULT_FILE_PATH}")
+
+if os.path.exists(DEFAULT_FILE_PATH):
+    print("✅ El archivo existe en la ubicación correcta.")
+else:
+    print("❌ El archivo no se encuentra en la ubicación esperada.")
+
 DEFAULT_FILE_NAME = "Adaptation of PLFV Anthology.docx"
 
 ############################
@@ -37,7 +46,10 @@ DEFAULT_FILE_NAME = "Adaptation of PLFV Anthology.docx"
 def upload_file(request: Request, user=Depends(get_verified_user)):
     """Carga automáticamente el archivo 'documento.pdf' al iniciar la app."""
 
+    log.info(f"📂 Buscando archivo en: {DEFAULT_FILE_PATH}")
+
     if not os.path.exists(DEFAULT_FILE_PATH):
+        log.error(f"❌ El archivo {DEFAULT_FILE_PATH} no existe en el servidor.")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"El archivo {DEFAULT_FILE_PATH} no existe en el servidor.",
@@ -47,14 +59,15 @@ def upload_file(request: Request, user=Depends(get_verified_user)):
         id = str(uuid.uuid4())
         name = DEFAULT_FILE_NAME
 
-        # Leer el contenido del archivo
-        with open(DEFAULT_FILE_PATH, "rb") as f:
-            contents = f.read()
+        log.info(f"📄 Abriendo el archivo: {DEFAULT_FILE_PATH}")
 
-        # Guardar el archivo en almacenamiento
-        file_path = Storage.upload_file(contents, f"{id}_{name}")
+        with open(DEFAULT_FILE_PATH, "rb") as file_obj:
+            file_path = Storage.upload_file(file_obj, f"{id}_{name}")
 
-        # Guardar en la base de datos
+        file_size = os.path.getsize(DEFAULT_FILE_PATH)
+
+        log.info(f"✅ Archivo '{name}' cargado correctamente en {file_path}, tamaño: {file_size} bytes")
+
         file_item = Files.insert_new_file(
             user.id,
             FileForm(
@@ -65,32 +78,25 @@ def upload_file(request: Request, user=Depends(get_verified_user)):
                     "meta": {
                         "name": name,
                         "content_type": "application/pdf",
-                        "size": len(contents),
-                        "data": {},  # Puedes agregar más metadatos si es necesario
+                        "size": file_size,
+                        "data": {},
                     },
                 }
             ),
         )
 
-        # Procesar el archivo (indexación, etc.)
-        try:
-            process_file(request, ProcessFileForm(file_id=id), user=user)
-            file_item = Files.get_file_by_id(id=id)
-        except Exception as e:
-            file_item = FileModelResponse(
-                **{
-                    **file_item.model_dump(),
-                    "error": str(e.detail) if hasattr(e, "detail") else str(e),
-                }
-            )
+        process_file(request, ProcessFileForm(file_id=id), user=user)
+        file_item = Files.get_file_by_id(id=id)
 
         return file_item
 
     except Exception as e:
+        log.exception(f"❌ Error al cargar el archivo: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al cargar el archivo: {str(e)}",
         )
+
 """
 @router.post("/", response_model=FileModelResponse)
 def upload_file(

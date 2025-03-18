@@ -136,7 +136,7 @@
 					</div>
 				</div>
 				<div>
-					Chatbot Humanidades
+					Introducción al Cristianismo
 				</div>
 
 			</div>
