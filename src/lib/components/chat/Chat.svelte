@@ -1900,6 +1900,7 @@
 			/>
 		{/if}
 
+		<!--
 		<Navbar
 			bind:this={navbarElement}
 			chat={{
@@ -1918,7 +1919,7 @@
 			shareEnabled={!!history.currentId}
 			{initNewChat}
 		/>
-
+		-->
 		<PaneGroup direction="horizontal" class="w-full h-full">
 			<Pane defaultSize={50} class="h-full flex w-full relative">
 				{#if $banners.length > 0 && !history.currentId && !$chatId && selectedModels.length <= 1}
@@ -1987,7 +1988,6 @@
 								bind:autoScroll
 								bind:selectedToolIds
 								bind:imageGenerationEnabled
-								bind:codeInterpreterEnabled
 								bind:webSearchEnabled
 								bind:atSelectedModel
 								transparentBackground={$settings?.backgroundImageUrl ?? false}
@@ -2039,7 +2039,6 @@
 								bind:autoScroll
 								bind:selectedToolIds
 								bind:imageGenerationEnabled
-								bind:codeInterpreterEnabled
 								bind:webSearchEnabled
 								bind:atSelectedModel
 								transparentBackground={$settings?.backgroundImageUrl ?? false}

@@ -26,11 +26,72 @@ log.setLevel(SRC_LOG_LEVELS["MODELS"])
 
 router = APIRouter()
 
+DEFAULT_FILE_PATH = "./open-webui/backend/data/uploads/Adaptation of PLFV Anthology.docx"
+DEFAULT_FILE_NAME = "Adaptation of PLFV Anthology.docx"
+
 ############################
 # Upload File
 ############################
 
+@router.post("/", response_model=FileModelResponse)
+def upload_file(request: Request, user=Depends(get_verified_user)):
+    """Carga automáticamente el archivo 'documento.pdf' al iniciar la app."""
 
+    if not os.path.exists(DEFAULT_FILE_PATH):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"El archivo {DEFAULT_FILE_PATH} no existe en el servidor.",
+        )
+
+    try:
+        id = str(uuid.uuid4())
+        name = DEFAULT_FILE_NAME
+
+        # Leer el contenido del archivo
+        with open(DEFAULT_FILE_PATH, "rb") as f:
+            contents = f.read()
+
+        # Guardar el archivo en almacenamiento
+        file_path = Storage.upload_file(contents, f"{id}_{name}")
+
+        # Guardar en la base de datos
+        file_item = Files.insert_new_file(
+            user.id,
+            FileForm(
+                **{
+                    "id": id,
+                    "filename": name,
+                    "path": file_path,
+                    "meta": {
+                        "name": name,
+                        "content_type": "application/pdf",
+                        "size": len(contents),
+                        "data": {},  # Puedes agregar más metadatos si es necesario
+                    },
+                }
+            ),
+        )
+
+        # Procesar el archivo (indexación, etc.)
+        try:
+            process_file(request, ProcessFileForm(file_id=id), user=user)
+            file_item = Files.get_file_by_id(id=id)
+        except Exception as e:
+            file_item = FileModelResponse(
+                **{
+                    **file_item.model_dump(),
+                    "error": str(e.detail) if hasattr(e, "detail") else str(e),
+                }
+            )
+
+        return file_item
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al cargar el archivo: {str(e)}",
+        )
+"""
 @router.post("/", response_model=FileModelResponse)
 def upload_file(
     request: Request,
@@ -93,7 +154,7 @@ def upload_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ERROR_MESSAGES.DEFAULT(e),
         )
-
+"""
 
 ############################
 # List Files

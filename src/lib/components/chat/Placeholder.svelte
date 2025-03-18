@@ -189,7 +189,6 @@
 					bind:autoScroll
 					bind:selectedToolIds
 					bind:imageGenerationEnabled
-					bind:codeInterpreterEnabled
 					bind:webSearchEnabled
 					bind:atSelectedModel
 					{transparentBackground}

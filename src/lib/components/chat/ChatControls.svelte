@@ -148,24 +148,23 @@
 					class=" {$showCallOverlay || $showOverview || $showArtifacts
 						? ' h-screen  w-full'
 						: 'px-6 py-4'} h-full"
-				>
-					{#if $showCallOverlay}
-						<div
-							class=" h-full max-h-[100dvh] bg-white text-gray-700 dark:bg-black dark:text-gray-300 flex justify-center"
-						>
-							<CallOverlay
-								bind:files
-								{submitPrompt}
-								{stopResponse}
-								{modelId}
-								{chatId}
-								{eventTarget}
-								on:close={() => {
-									showControls.set(false);
-								}}
-							/>
-						</div>
-					{:else if $showArtifacts}
+				><!--
+						{#if $showCallOverlay}
+							<div class="w-full h-full flex justify-center">
+								<CallOverlay
+									bind:files
+									{submitPrompt}
+									{stopResponse}
+									{modelId}
+									{chatId}
+									{eventTarget}
+									on:close={() => {
+										showControls.set(false);
+									}}
+								/>
+							</div>
+					-->
+					{#if $showArtifacts}
 						<Artifacts {history} />
 					{:else if $showOverview}
 						<Overview
@@ -231,7 +230,7 @@
 						class="w-full {($showOverview || $showArtifacts) && !$showCallOverlay
 							? ' '
 							: 'px-4 py-4 bg-white dark:shadow-lg dark:bg-gray-850  border border-gray-100 dark:border-gray-850'}  rounded-xl z-40 pointer-events-auto overflow-y-auto scrollbar-hidden"
-					>
+					><!--
 						{#if $showCallOverlay}
 							<div class="w-full h-full flex justify-center">
 								<CallOverlay
@@ -246,7 +245,8 @@
 									}}
 								/>
 							</div>
-						{:else if $showArtifacts}
+					-->
+						{#if $showArtifacts}
 							<Artifacts {history} overlay={dragged} />
 						{:else if $showOverview}
 							<Overview

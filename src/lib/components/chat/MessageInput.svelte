@@ -461,7 +461,6 @@
 									</div>
 								</div>
 							{/if}
-
 							{#if codeInterpreterEnabled}
 								<div class="flex items-center justify-between w-full">
 									<div class="flex items-center gap-2.5 text-sm dark:text-gray-500">
@@ -1172,6 +1171,7 @@
 														</button>
 													</Tooltip>
 												{/if}
+<!--
 
 												{#if $config?.features?.enable_code_interpreter && ($_user.role === 'admin' || $_user?.permissions?.features?.code_interpreter)}
 													<Tooltip content={$i18n.t('Execute code for analysis')} placement="top">
@@ -1191,6 +1191,7 @@
 														</button>
 													</Tooltip>
 												{/if}
+												-->
 											{/if}
 										</div>
 									</div>
@@ -1248,6 +1249,7 @@
 										{#if !history.currentId || history.messages[history.currentId]?.done == true}
 											{#if prompt === '' && files.length === 0}
 												<div class=" flex items-center">
+										<!--
 													<Tooltip content={$i18n.t('Call')}>
 														<button
 															class=" {webSearchEnabled ||
@@ -1309,6 +1311,7 @@
 															<Headphone className="size-5" />
 														</button>
 													</Tooltip>
+												-->
 												</div>
 											{:else}
 												<div class=" flex items-center">
