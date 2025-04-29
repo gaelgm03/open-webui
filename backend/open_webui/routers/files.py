@@ -16,6 +16,7 @@ from open_webui.models.files import (
     Files,
 )
 from open_webui.routers.retrieval import ProcessFileForm, process_file
+from open_webui.routers.audio import transcribe
 from open_webui.storage.provider import Storage
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from pydantic import BaseModel
@@ -26,78 +27,11 @@ log.setLevel(SRC_LOG_LEVELS["MODELS"])
 
 router = APIRouter()
 
-
-
-DEFAULT_FILE_PATH = os.path.abspath("./open-webui/backend/data/uploads/Adaptation of PLFV Anthology.docx")
-print(f"📂 Ruta absoluta del archivo: {DEFAULT_FILE_PATH}")
-
-if os.path.exists(DEFAULT_FILE_PATH):
-    print("✅ El archivo existe en la ubicación correcta.")
-else:
-    print("❌ El archivo no se encuentra en la ubicación esperada.")
-
-DEFAULT_FILE_NAME = "Adaptation of PLFV Anthology.docx"
-
 ############################
 # Upload File
 ############################
 
-@router.post("/", response_model=FileModelResponse)
-def upload_file(request: Request, user=Depends(get_verified_user)):
-    """Carga automáticamente el archivo 'documento.pdf' al iniciar la app."""
 
-    log.info(f"📂 Buscando archivo en: {DEFAULT_FILE_PATH}")
-
-    if not os.path.exists(DEFAULT_FILE_PATH):
-        log.error(f"❌ El archivo {DEFAULT_FILE_PATH} no existe en el servidor.")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"El archivo {DEFAULT_FILE_PATH} no existe en el servidor.",
-        )
-
-    try:
-        id = str(uuid.uuid4())
-        name = DEFAULT_FILE_NAME
-
-        log.info(f"📄 Abriendo el archivo: {DEFAULT_FILE_PATH}")
-
-        with open(DEFAULT_FILE_PATH, "rb") as file_obj:
-            file_path = Storage.upload_file(file_obj, f"{id}_{name}")
-
-        file_size = os.path.getsize(DEFAULT_FILE_PATH)
-
-        log.info(f"✅ Archivo '{name}' cargado correctamente en {file_path}, tamaño: {file_size} bytes")
-
-        file_item = Files.insert_new_file(
-            user.id,
-            FileForm(
-                **{
-                    "id": id,
-                    "filename": name,
-                    "path": file_path,
-                    "meta": {
-                        "name": name,
-                        "content_type": "application/pdf",
-                        "size": file_size,
-                        "data": {},
-                    },
-                }
-            ),
-        )
-
-        process_file(request, ProcessFileForm(file_id=id), user=user)
-        file_item = Files.get_file_by_id(id=id)
-
-        return file_item
-
-    except Exception as e:
-        log.exception(f"❌ Error al cargar el archivo: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al cargar el archivo: {str(e)}",
-        )
-
-"""
 @router.post("/", response_model=FileModelResponse)
 def upload_file(
     request: Request,
@@ -134,7 +68,22 @@ def upload_file(
         )
 
         try:
-            process_file(request, ProcessFileForm(file_id=id), user=user)
+            if file.content_type in [
+                "audio/mpeg",
+                "audio/wav",
+                "audio/ogg",
+                "audio/x-m4a",
+            ]:
+                file_path = Storage.get_file(file_path)
+                result = transcribe(request, file_path)
+                process_file(
+                    request,
+                    ProcessFileForm(file_id=id, content=result.get("text", "")),
+                    user=user,
+                )
+            else:
+                process_file(request, ProcessFileForm(file_id=id), user=user)
+
             file_item = Files.get_file_by_id(id=id)
         except Exception as e:
             log.exception(e)
@@ -160,7 +109,7 @@ def upload_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ERROR_MESSAGES.DEFAULT(e),
         )
-"""
+
 
 ############################
 # List Files
@@ -292,17 +241,24 @@ async def get_file_content_by_id(id: str, user=Depends(get_verified_user)):
                 filename = file.meta.get("name", file.filename)
                 encoded_filename = quote(filename)  # RFC5987 encoding
 
+                content_type = file.meta.get("content_type")
+                filename = file.meta.get("name", file.filename)
+                encoded_filename = quote(filename)
                 headers = {}
-                if file.meta.get("content_type") not in [
-                    "application/pdf",
-                    "text/plain",
-                ]:
-                    headers = {
-                        **headers,
-                        "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
-                    }
 
-                return FileResponse(file_path, headers=headers)
+                if content_type == "application/pdf" or filename.lower().endswith(
+                    ".pdf"
+                ):
+                    headers["Content-Disposition"] = (
+                        f"inline; filename*=UTF-8''{encoded_filename}"
+                    )
+                    content_type = "application/pdf"
+                elif content_type != "text/plain":
+                    headers["Content-Disposition"] = (
+                        f"attachment; filename*=UTF-8''{encoded_filename}"
+                    )
+
+                return FileResponse(file_path, headers=headers, media_type=content_type)
 
             else:
                 raise HTTPException(
@@ -333,7 +289,7 @@ async def get_html_file_content_by_id(id: str, user=Depends(get_verified_user)):
 
             # Check if the file already exists in the cache
             if file_path.is_file():
-                print(f"file_path: {file_path}")
+                log.info(f"file_path: {file_path}")
                 return FileResponse(file_path)
             else:
                 raise HTTPException(

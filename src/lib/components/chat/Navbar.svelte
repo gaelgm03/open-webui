@@ -71,11 +71,14 @@
 
 			<div
 				class="flex-1 overflow-hidden max-w-full py-0.5
-				{$showSidebar ? 'ml-1' : ''}
-				"
-				>
-					<!-- Eliminamos la condición que mostraba el ModelSelector -->
+			{$showSidebar ? 'ml-1' : ''}
+			"
+			>
+				{#if showModelSelector}
+					<ModelSelector bind:selectedModels showSetDefault={!shareEnabled} />
+				{/if}
 			</div>
+
 			<div class="self-start flex flex-none items-center text-gray-600 dark:text-gray-400">
 				<!-- <div class="md:hidden flex self-center w-[1px] h-5 mx-2 bg-gray-300 dark:bg-stone-700" /> -->
 				{#if shareEnabled && chat && (chat.id || $temporaryChatEnabled)}
